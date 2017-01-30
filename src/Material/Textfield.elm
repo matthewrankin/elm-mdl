@@ -23,8 +23,8 @@ module Material.Textfield
         , Msg(..)
         , update
         , view
+        , number_
         )
-
 
 {-| From the [Material Design Lite documentation](http://www.getmdl.io/components/#textfields-section):
 
@@ -94,6 +94,7 @@ type Kind
     | Textarea
     | Password
     | Email
+    | Number
 
 
 type alias Config m =
@@ -166,7 +167,7 @@ Defaults to `search`
 -}
 expandableIcon : String -> Property m
 expandableIcon id =
-  Internal.option
+    Internal.option
         (\config -> { config | expandableIcon = id })
 
 
@@ -219,8 +220,8 @@ input =
 -}
 email : Property m
 email =
-  Internal.option
-    (\config -> { config | kind = Email })
+    Internal.option
+        (\config -> { config | kind = Email })
 
 
 {-| Sets the type of input to 'password'.
@@ -229,6 +230,14 @@ password : Property m
 password =
     Internal.option
         (\config -> { config | kind = Password })
+
+
+{-| Sets the type of input to 'number'.
+-}
+number_ : Property m
+number_ =
+    Internal.option
+        (\config -> { config | kind = Number })
 
 
 {-| Creates a multiline textarea using 'textarea' element
@@ -273,7 +282,7 @@ type alias Model =
     }
 
 
-{-| Default model. 
+{-| Default model.
 -}
 defaultModel : Model
 defaultModel =
@@ -313,8 +322,9 @@ update _ action model =
             Just { model | isFocused = False }
 
         Focus ->
-            Just { model | isFocused = True })
-    |> flip (!) [] 
+            Just { model | isFocused = True }
+    )
+        |> flip (!) []
 
 
 
@@ -379,60 +389,77 @@ view lift model options _ =
             , Internal.on1 "focus" lift Focus
             , Internal.on1 "blur" lift Blur
             , cs "mdl-textfield--floating-label" |> when config.labelFloat
-            , cs "is-invalid" |> when  (config.error /= Nothing)
-            , cs "is-dirty" 
-                |> when (case config.value of
-                           Just "" -> False
-                           Just _ -> True
-                           Nothing -> model.isDirty)
-            , cs "is-focused" |> when  (model.isFocused && not config.disabled)
-            , cs "is-disabled" |> when  config.disabled
+            , cs "is-invalid" |> when (config.error /= Nothing)
+            , cs "is-dirty"
+                |> when
+                    (case config.value of
+                        Just "" ->
+                            False
+
+                        Just _ ->
+                            True
+
+                        Nothing ->
+                            model.isDirty
+                    )
+            , cs "is-focused" |> when (model.isFocused && not config.disabled)
+            , cs "is-disabled" |> when config.disabled
             , cs "mdl-textfield--expandable" |> when (config.expandable /= Nothing)
-            ] <| expHolder
-            [ Internal.applyInput summary 
-                (if config.kind == Textarea then Html.textarea else Html.input)
-                [ cs "mdl-textfield__input"
-                , css "outline" "none"
-                , Internal.on1 "focus" lift Focus
-                , Internal.on1 "blur" lift Blur
-                , case config.kind of
-                    Text ->
-                        Internal.attribute <| type_ "text"
-
-                    Password ->
-                        Internal.attribute <| type_ "password"
-
-                    Email -> 
-                        Internal.attribute <| type_ "email" 
-                    _ ->
-                        nop
-                , Internal.attribute (Html.Attributes.disabled True) 
-                    |> when config.disabled
-                , expandableId
-                , case config.value of
-                    Nothing ->
-                        -- If user is not setting value, is we need the default input
-                        -- decoder to maintain is-dirty
-                        Options.on "input"
-                            (Decoder.map (Input >> lift) Html.Events.targetValue)
-
-                    Just v ->
-                        Internal.attribute <| Html.Attributes.value v
-                ]
-                []
-            , Html.label
-                ([ class "mdl-textfield__label" ] ++ labelFor)
-                (case config.labelText of
-                    Just str ->
-                        [ text str ]
-
-                    Nothing ->
-                        []
-                )
-            , config.error
-                |> Maybe.map (\e -> span [ class "mdl-textfield__error" ] [ text e ])
-                |> Maybe.withDefault (div [] [])
             ]
+        <|
+            expHolder
+                [ Internal.applyInput summary
+                    (if config.kind == Textarea then
+                        Html.textarea
+                     else
+                        Html.input
+                    )
+                    [ cs "mdl-textfield__input"
+                    , css "outline" "none"
+                    , Internal.on1 "focus" lift Focus
+                    , Internal.on1 "blur" lift Blur
+                    , case config.kind of
+                        Text ->
+                            Internal.attribute <| type_ "text"
+
+                        Password ->
+                            Internal.attribute <| type_ "password"
+
+                        Email ->
+                            Internal.attribute <| type_ "email"
+
+                        Number ->
+                            Internal.attribute <| type_ "number"
+
+                        _ ->
+                            nop
+                    , Internal.attribute (Html.Attributes.disabled True)
+                        |> when config.disabled
+                    , expandableId
+                    , case config.value of
+                        Nothing ->
+                            -- If user is not setting value, is we need the default input
+                            -- decoder to maintain is-dirty
+                            Options.on "input"
+                                (Decoder.map (Input >> lift) Html.Events.targetValue)
+
+                        Just v ->
+                            Internal.attribute <| Html.Attributes.value v
+                    ]
+                    []
+                , Html.label
+                    ([ class "mdl-textfield__label" ] ++ labelFor)
+                    (case config.labelText of
+                        Just str ->
+                            [ text str ]
+
+                        Nothing ->
+                            []
+                    )
+                , config.error
+                    |> Maybe.map (\e -> span [ class "mdl-textfield__error" ] [ text e ])
+                    |> Maybe.withDefault (div [] [])
+                ]
 
 
 
@@ -449,8 +476,8 @@ type alias Store s =
 
 {-| Component react function.
 -}
-react
-    : ( Component.Msg button Msg menu layout toggles tooltip tabs dispatch -> msg)
+react :
+    (Component.Msg button Msg menu layout toggles tooltip tabs dispatch -> msg)
     -> Msg
     -> Index
     -> Store s
@@ -458,7 +485,8 @@ react
 react =
     Component.react get
         set
-        Component.TextfieldMsg update
+        Component.TextfieldMsg
+        update
 
 
 {-| Component render. Below is an example, assuming boilerplate setup as indicated
@@ -476,12 +504,12 @@ of the textfield's implementation, and so is mostly useful for positioning
 (e.g., `margin: 0 auto;` or `align-self: flex-end`). See `Textfield.style`
 if you need to apply styling to the underlying `<input>` element.
 -}
-render
-    : (Component.Msg button Msg menu layout toggles tooltip tabs dispatch -> m)
+render :
+    (Component.Msg button Msg menu layout toggles tooltip tabs dispatch -> m)
     -> Index
     -> Store s
     -> List (Property m)
     -> x
-    -> Html m       
+    -> Html m
 render =
     Component.render get view Component.TextfieldMsg
