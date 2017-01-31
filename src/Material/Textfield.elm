@@ -65,7 +65,7 @@ for a live demo.
 @docs disabled, rows, cols
 @docs autofocus, maxlength
 
-@docs password, email, textarea, text_
+@docs password, email, textarea, text_, number_
 @docs expandable, expandableIcon
 
 # Elm Architecture
